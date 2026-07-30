@@ -1,74 +1,130 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multimodal GraphRAG</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Futuristic GraphRAG UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Essential base overrides only, no vanilla CSS UI */
+        body { background-color: #0f172a; overflow: hidden; margin: 0; padding: 0; }
+        .cy-container { position: absolute; inset: 0; z-index: 0; }
+        
+        /* Glassmorphism utility classes mapped directly for Tailwind consistency */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        
+        /* Scrollbar styles for chat */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+    </style>
 </head>
-<body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar glass-panel">
-            <div class="logo">
-                <span class="icon">⬡</span>
-                <h1>GraphRAG Core</h1>
+<body class="bg-slate-900 text-slate-200 h-screen w-screen overflow-hidden font-sans">
+    <div class="relative w-full h-full flex">
+        
+        <!-- Main Graph Area (Cytoscape behind sidebar) -->
+        <main class="flex-1 relative h-full w-full">
+            <div id="cy" class="cy-container"></div>
+            
+            <!-- Overlay Indicators -->
+            <div class="absolute top-4 right-4 glass-panel rounded-xl p-4 z-10 flex flex-col gap-2 shadow-2xl">
+                <h4 class="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-1">Graph Legend</h4>
+                <div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span> Company</div>
+                <div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(139,92,246,0.8)]"></span> Person</div>
+                <div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span> Metric</div>
+                <div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span> Product</div>
             </div>
             
-            <div class="upload-section">
-                <h3>Document Processing</h3>
-                <div class="document-card">
-                    <div class="doc-icon">📄</div>
-                    <div class="doc-info">
-                        <p class="doc-name">Q3_Financial_Report.pdf</p>
-                        <p class="doc-meta">2.4 MB • PDF</p>
+            <div id="reasoning-overlay" class="absolute bottom-6 left-1/2 -translate-x-1/2 glass-panel rounded-full px-6 py-3 z-10 hidden flex-row items-center gap-3 transition-all duration-300">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-brand-500"></span>
+                </span>
+                <div>
+                    <h4 class="text-sm font-semibold text-white leading-tight">Multi-Hop Reasoning Active</h4>
+                    <p id="reasoning-text" class="text-xs text-slate-300">Traversing knowledge graph to synthesize answer...</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Sidebar -->
+        <aside class="w-80 h-full glass-panel flex flex-col z-10 border-r border-slate-700/50 relative shadow-2xl">
+            <!-- Header -->
+            <div class="p-6 border-b border-slate-700/50 flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
+                    ⬡
+                </div>
+                <h1 class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">GraphRAG Core</h1>
+            </div>
+            
+            <!-- Upload Section -->
+            <div class="p-6 flex flex-col gap-4">
+                <h3 class="text-xs font-semibold uppercase text-slate-400 tracking-wider">Document Processing</h3>
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4 flex items-center gap-3 hover:border-brand-500/30 transition-colors">
+                    <div class="text-2xl">📄</div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-slate-200">Q3_Financial_Report.pdf</p>
+                        <p class="text-xs text-slate-400">2.4 MB • PDF</p>
                     </div>
                 </div>
-                <button id="btn-process" class="btn-primary">
+                <button id="btn-process" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2">
                     <span class="btn-text">Process Document</span>
-                    <div class="loader hidden"></div>
+                    <div class="loader hidden w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                 </button>
-                <div id="extraction-status" class="status-text hidden">
+                <div id="extraction-status" class="hidden text-xs text-center text-brand-400 animate-pulse font-medium">
                     Extracting Entities...
                 </div>
             </div>
 
-            <div class="chat-section hidden" id="chat-section">
-                <h3>Graph Query</h3>
-                <div class="chat-history" id="chat-history">
-                    <!-- Chat messages go here -->
+            <!-- Chat Section -->
+            <div class="hidden flex-1 flex-col overflow-hidden border-t border-slate-700/50" id="chat-section">
+                <div class="p-4 border-b border-slate-700/50 bg-slate-800/20">
+                    <h3 class="text-xs font-semibold uppercase text-slate-400 tracking-wider">Graph Query</h3>
                 </div>
-                <div class="chat-input-wrapper">
-                    <input type="text" id="chat-input" placeholder="Ask about the document..." disabled>
-                    <button id="btn-send" disabled>⮞</button>
+                
+                <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3" id="chat-history">
+                    <!-- Chat messages -->
+                </div>
+                
+                <div class="p-4 border-t border-slate-700/50 bg-slate-800/40">
+                    <div class="relative flex items-center">
+                        <input type="text" id="chat-input" disabled class="w-full bg-slate-900/50 border border-slate-700 text-sm rounded-lg pl-4 pr-10 py-2.5 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 placeholder-slate-500 transition-all disabled:opacity-50 text-white" placeholder="Ask about the document...">
+                        <button id="btn-send" disabled class="absolute right-2 p-1.5 rounded-md text-brand-400 hover:text-white hover:bg-brand-500 transition-colors disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-brand-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </aside>
 
-        <!-- Main Graph Area -->
-        <main class="graph-area">
-            <div id="cy" class="cy-container"></div>
-            
-            <!-- Overlay indicators -->
-            <div class="overlay-panel top-right glass-panel">
-                <div class="legend">
-                    <div class="legend-item"><span class="dot company"></span> Company</div>
-                    <div class="legend-item"><span class="dot person"></span> Person</div>
-                    <div class="legend-item"><span class="dot metric"></span> Metric</div>
-                    <div class="legend-item"><span class="dot product"></span> Product</div>
-                </div>
-            </div>
-            
-            <div id="reasoning-overlay" class="overlay-panel bottom-center glass-panel hidden">
-                <div class="reasoning-header">
-                    <span class="pulse-dot"></span>
-                    <h4>Multi-Hop Reasoning Active</h4>
-                </div>
-                <p id="reasoning-text">Traversing knowledge graph to synthesize answer...</p>
-            </div>
-        </main>
     </div>
     
     <script src="app.js"></script>

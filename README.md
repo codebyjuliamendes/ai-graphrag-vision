@@ -1,43 +1,78 @@
-# Multimodal GraphRAG
+<div align="center">
+  <img src="https://img.icons8.com/color/120/000000/graph.png" alt="GraphRAG Vision Logo" />
+  <h1>🚀 AI GraphRAG Vision</h1>
+  <p><strong>A Next-Generation Multimodal Graph Retrieval-Augmented Generation UI</strong></p>
 
-A surreal, cutting-edge AI portfolio project demonstrating Graph-based Retrieval-Augmented Generation (GraphRAG) with visual multi-hop reasoning. 
+  [![Node.js](https://img.shields.io/badge/Node.js-18.x-green.svg?style=for-the-badge&logo=node.js)](https://nodejs.org/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-38B2AC.svg?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+  [![Cytoscape.js](https://img.shields.io/badge/Cytoscape.js-3.26-F68C33.svg?style=for-the-badge)](https://js.cytoscape.org/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+</div>
 
-## The "Why"
-Traditional RAG relies on vector similarity, which struggles with complex, multi-hop reasoning across scattered documents. GraphRAG structures unstructured data into a Knowledge Graph, enabling the AI to explicitly traverse relationships (e.g., Company X -> acquired -> Company Y -> created -> Product Z). This project visualizes that traversal in real-time, making the AI's reasoning transparent and intuitive.
+<hr/>
 
-## Architecture
+## 📖 Overview
+
+**AI GraphRAG Vision** is a cutting-edge implementation of Graph-based Retrieval-Augmented Generation (GraphRAG). It transforms unstructured documents into rich, traversable knowledge graphs and provides a futuristic, glassmorphic UI to query, reason over, and visualize complex entity relationships.
+
+## ✨ Built With
+
+- **Frontend:** HTML5, Tailwind CSS (via CDN for zero-build setup), Vanilla JavaScript
+- **Graph Visualization:** Cytoscape.js
+- **Backend Architecture:** Node.js, Express.js (Clean Architecture & Robust Middleware)
+- **Design System:** Custom Dark Mode Glassmorphism with Tailwind Utility Classes
+
+## 🏗 Architecture
+
+We adhere strictly to Clean Architecture principles on the backend. The API layer is decoupled from the business logic layer (`MockLLMAdapter`), ensuring modularity, testability, and rigid validation/error boundaries.
 
 ```mermaid
 graph TD
-    A[User UI] -->|Upload Document| B(Backend: Express)
-    B -->|Extract Entities| C{Mock LLM Adapter}
-    C -->|Return Nodes & Edges| B
-    B -->|Render Graph| D[Frontend: Cytoscape.js]
-    A -->|Natural Language Query| B
-    B -->|Multi-hop Traversal| C
-    C -->|Sub-graph + Answer| B
-    B -->|Highlight Path| D
+    Client[Client UI - Tailwind + Cytoscape] -->|REST API| Server(Express Router)
+    Server --> Validation[Validation Middleware]
+    Validation --> Controller[Route Controllers]
+    Controller --> Service(LLM Service Adapter)
+    Service --> KG[(Simulated Knowledge Graph)]
+    Service -.->|Returns Graph / Answer| Controller
+    Controller -.->|JSON Response| Client
+    Server --> ErrorHandler[Global Error Middleware]
 ```
 
-## Trade-offs
-- **In-Memory Store vs GraphDB:** We use an in-memory graph structure for simplicity and zero-setup deployment. In a production environment with massive data, a dedicated Graph Database like Neo4j would be required.
-- **Mock LLM vs Real API:** To ensure this portfolio project runs out-of-the-box without requiring API keys, we use a `MockLLMAdapter` that simulates the latency, entity extraction, and multi-hop reasoning capabilities of models like GPT-4.
+### 🧠 Why this Architecture?
+- **Modularity:** Extracting the LLM interaction into `MockLLMAdapter` allows seamless swapping for real OpenAI or Anthropic SDKs in the future.
+- **Robustness:** A centralized error-handling middleware catches all unhandled exceptions, ensuring the server never crashes silently and always responds with standard JSON.
+- **Security & Reliability:** Strict request validation prevents malformed inputs before they hit the expensive LLM layer.
 
-## Quick Start
+## 🚀 Quick Start
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+### 1. Prerequisites
+Ensure you have [Node.js](https://nodejs.org/) (v16+ recommended) installed.
 
-2. Start the server:
-   ```bash
-   npm start
-   ```
+### 2. Installation
+```bash
+# Clone the repository (if applicable)
+git clone https://github.com/your-username/ai-graphrag-vision.git
 
-3. Open your browser to `http://localhost:3000`
+# Navigate into the project directory
+cd ai-graphrag-vision
 
-## Features
-- **Futuristic UI:** Glassmorphism panels, dark mode, smooth transitions.
-- **Interactive Graph:** Beautifully rendered Knowledge Graph using Cytoscape.js. Force-directed layout.
-- **Visual Reasoning:** When queried, the system visually highlights the exact path (multi-hop) it takes through the graph to synthesize its answer.
+# Install dependencies
+npm install
+```
+
+### 3. Running the Server
+```bash
+# Start the application
+npm start
+```
+*The server will start on `http://localhost:4001` by default.*
+
+## 🎨 UI/UX Trade-offs
+- **Tailwind CDN:** Used to rapidly prototype the futuristic glassmorphic UI without complex build steps (Vite/Webpack), ensuring immediate accessibility and code simplicity.
+- **Cytoscape.js:** Chosen over D3 for out-of-the-box physics-based layout (`cose`) and robust graph traversal animations, which are essential for visualizing "Multi-Hop Reasoning."
+
+## 🤝 Contributing
+Contributions, issues, and feature requests are welcome! Feel free to check [issues page](#).
+
+## 📝 License
+This project is [MIT](https://opensource.org/licenses/MIT) licensed.

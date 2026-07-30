@@ -214,7 +214,13 @@ function initCytoscape() {
 function addChatMessage(role, text) {
     const history = document.getElementById('chat-history');
     const msgDiv = document.createElement('div');
-    msgDiv.className = `msg ${role}`;
+    
+    if (role === 'user') {
+        msgDiv.className = 'self-end bg-brand-600/30 border border-brand-500/50 text-brand-100 p-3 rounded-2xl rounded-tr-sm text-sm max-w-[85%] shadow-md backdrop-blur-sm';
+    } else {
+        msgDiv.className = 'self-start bg-slate-800/70 border border-slate-700/80 text-slate-200 p-3 rounded-2xl rounded-tl-sm text-sm max-w-[85%] shadow-md backdrop-blur-sm';
+    }
+    
     msgDiv.textContent = text;
     history.appendChild(msgDiv);
     history.scrollTop = history.scrollHeight;

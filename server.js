@@ -1,34 +1,71 @@
+/**
+ * @fileoverview Express Server with Clean Architecture and strict error handling.
+ */
+
 const express = require('express');
 const path = require('path');
 const MockLLMAdapter = require('./MockLLMAdapter');
 
 const app = express();
 const port = process.env.PORT || 4001;
-const llm = new MockLLMAdapter();
+const llmService = new MockLLMAdapter();
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.post('/api/process-document', async (req, res) => {
+/**
+ * Validates the presence and type of query in request body.
+ */
+const validateQuery = (req, res, next) => {
+    const { query } = req.body;
+    if (!query || typeof query !== 'string' || query.trim() === '') {
+        return res.status(400).json({
+            success: false,
+            error: 'Bad Request: "query" must be a non-empty string.'
+        });
+    }
+    next();
+};
+
+/**
+ * Route: Process Document
+ * Triggers graph extraction from document
+ */
+app.post('/api/process-document', async (req, res, next) => {
     try {
-        // Simulate document processing delay
-        const graphData = await llm.extractEntities();
+        const graphData = await llmService.extractEntities();
         res.json({ success: true, graph: graphData });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        next(error);
     }
 });
 
-app.post('/api/query', async (req, res) => {
+/**
+ * Route: Query Graph
+ * Queries the knowledge graph using natural language
+ */
+app.post('/api/query', validateQuery, async (req, res, next) => {
     try {
         const { query } = req.body;
-        const result = await llm.processQuery(query);
+        const result = await llmService.processQuery(query);
         res.json({ success: true, data: result });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
+        next(error);
     }
+});
+
+/**
+ * Global Error Handling Middleware
+ */
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+    console.error(`[Error] ${err.message}`, err.stack);
+    res.status(err.status || 500).json({
+        success: false,
+        error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message
+    });
 });
 
 app.listen(port, () => {
-    console.log(`Multimodal GraphRAG server running at http://localhost:${port}`);
+    console.log(`[Server] Multimodal GraphRAG running at http://localhost:${port}`);
 });
