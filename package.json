@@ -1,0 +1,12 @@
+{
+  "name": "multimodal-graphrag",
+  "version": "1.0.0",
+  "description": "Multimodal GraphRAG visualization with MockLLM",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multimodal GraphRAG</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel">
+            <div class="logo">
+                <span class="icon">⬡</span>
+                <h1>GraphRAG Core</h1>
+            </div>
+            
+            <div class="upload-section">
+                <h3>Document Processing</h3>
+                <div class="document-card">
+                    <div class="doc-icon">📄</div>
+                    <div class="doc-info">
+                        <p class="doc-name">Q3_Financial_Report.pdf</p>
+                        <p class="doc-meta">2.4 MB • PDF</p>
+                    </div>
+                </div>
+                <button id="btn-process" class="btn-primary">
+                    <span class="btn-text">Process Document</span>
+                    <div class="loader hidden"></div>
+                </button>
+                <div id="extraction-status" class="status-text hidden">
+                    Extracting Entities...
+                </div>
+            </div>
+
+            <div class="chat-section hidden" id="chat-section">
+                <h3>Graph Query</h3>
+                <div class="chat-history" id="chat-history">
+                    <!-- Chat messages go here -->
+                </div>
+                <div class="chat-input-wrapper">
+                    <input type="text" id="chat-input" placeholder="Ask about the document..." disabled>
+                    <button id="btn-send" disabled>⮞</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Graph Area -->
+        <main class="graph-area">
+            <div id="cy" class="cy-container"></div>
+            
+            <!-- Overlay indicators -->
+            <div class="overlay-panel top-right glass-panel">
+                <div class="legend">
+                    <div class="legend-item"><span class="dot company"></span> Company</div>
+                    <div class="legend-item"><span class="dot person"></span> Person</div>
+                    <div class="legend-item"><span class="dot metric"></span> Metric</div>
+                    <div class="legend-item"><span class="dot product"></span> Product</div>
+                </div>
+            </div>
+            
+            <div id="reasoning-overlay" class="overlay-panel bottom-center glass-panel hidden">
+                <div class="reasoning-header">
+                    <span class="pulse-dot"></span>
+                    <h4>Multi-Hop Reasoning Active</h4>
+                </div>
+                <p id="reasoning-text">Traversing knowledge graph to synthesize answer...</p>
+            </div>
+        </main>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
