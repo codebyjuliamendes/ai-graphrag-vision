@@ -4,12 +4,18 @@
 
 const express = require('express');
 const path = require('path');
+const helmet = require('helmet');
+const cors = require('cors');
+const compression = require('compression');
 const MockLLMAdapter = require('./MockLLMAdapter');
 
 const app = express();
 const port = process.env.PORT || 4001;
 const llmService = new MockLLMAdapter();
 
+app.use(helmet());
+app.use(cors());
+app.use(compression());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 

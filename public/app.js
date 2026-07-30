@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnProcess.querySelector('.loader').classList.remove('hidden');
         btnProcess.disabled = true;
         statusText.classList.remove('hidden');
+        document.getElementById('parsing-skeleton').classList.remove('hidden');
 
         try {
             const response = await fetch('/api/process-document', { method: 'POST' });
@@ -36,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Update UI to Chat Mode
                 statusText.classList.add('hidden');
+                document.getElementById('parsing-skeleton').classList.add('hidden');
                 btnProcess.parentElement.classList.add('hidden');
                 chatSection.classList.remove('hidden');
                 
@@ -43,11 +45,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('btn-send').disabled = false;
                 
                 addChatMessage('ai', 'Graph constructed successfully. What would you like to know about the document?');
+                showToast('Graph built successfully', 'success');
             }
         } catch (error) {
             console.error("Error processing document:", error);
             statusText.textContent = "Error processing document.";
             statusText.style.color = "#ef4444";
+            document.getElementById('parsing-skeleton').classList.add('hidden');
+            showToast('Failed to process document', 'error');
         }
     });
 
@@ -224,4 +229,38 @@ function addChatMessage(role, text) {
     msgDiv.textContent = text;
     history.appendChild(msgDiv);
     history.scrollTop = history.scrollHeight;
+}
+
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `flex items-center gap-3 glass-panel px-4 py-3 rounded-lg shadow-lg border-l-4 transition-all duration-300 transform translate-y-full opacity-0 ${type === 'success' ? 'border-l-emerald-500' : 'border-l-red-500'}`;
+    
+    const icon = document.createElement('i');
+    icon.setAttribute('data-lucide', type === 'success' ? 'check-circle' : 'alert-circle');
+    icon.className = `w-5 h-5 ${type === 'success' ? 'text-emerald-500' : 'text-red-500'}`;
+    
+    const text = document.createElement('span');
+    text.className = 'text-sm font-medium text-slate-200';
+    text.textContent = message;
+    
+    toast.appendChild(icon);
+    toast.appendChild(text);
+    container.appendChild(toast);
+    
+    // Initialize the icon
+    if (window.lucide) {
+        lucide.createIcons({ root: toast });
+    }
+    
+    // Animate in
+    requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-full', 'opacity-0');
+    });
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-full');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
