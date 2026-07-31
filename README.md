@@ -82,3 +82,9 @@ Contributions, issues, and feature requests are welcome! Feel free to check [iss
 
 ## 📝 License
 This project is [MIT](https://opensource.org/licenses/MIT) licensed.
+
+## ?? V4 Upgrades
+- **Kubernetes Ready:** Added k8s/ manifests including Deployment, Service, and Ingress for seamless container orchestration.
+- **CI/CD Pipelines:** Integrated GitHub Actions workflow for automated testing and docker build simulation.
+- **Interactive API Docs:** Added a static Swagger UI exposed at /api-docs mapping to the OpenAPI spec at /swagger.json.
+
