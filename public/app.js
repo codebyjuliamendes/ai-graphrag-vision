@@ -25,15 +25,56 @@ document.addEventListener('DOMContentLoaded', () => {
                 cy.add(data.graph.nodes);
                 cy.add(data.graph.edges);
                 
-                // Run layout
+                // Run layout using fixed positions from LLM metadata
                 cy.layout({
-                    name: 'cose',
+                    name: 'preset',
                     animate: true,
-                    animationDuration: 1000,
-                    padding: 50,
-                    nodeRepulsion: 400000,
-                    idealEdgeLength: 100
+                    animationDuration: 1000
                 }).run();
+                
+                // Initialize Temporal Slider Logic
+                const timeSlider = document.getElementById('time-slider');
+                const timeDisplay = document.getElementById('time-display');
+                if (timeSlider) {
+                    timeSlider.addEventListener('input', (e) => {
+                        const year = parseInt(e.target.value);
+                        timeDisplay.textContent = `Year: ${year}`;
+                        
+                        cy.elements().forEach(ele => {
+                            const validFrom = ele.data('valid_from');
+                            const validUntil = ele.data('valid_until');
+                            
+                            if (validFrom && validUntil) {
+                                if (year >= validFrom && year <= validUntil) {
+                                    ele.style('display', 'element');
+                                } else {
+                                    ele.style('display', 'none');
+                                }
+                            }
+                        });
+                    });
+                }
+                
+                // Initialize Semantic Zoom Logic
+                cy.on('zoom', () => {
+                    const zoom = cy.zoom();
+                    cy.nodes().forEach(node => {
+                        const minZoom = node.data('zoomLevel') || 0;
+                        if (zoom < minZoom) {
+                            node.style('display', 'none');
+                        } else {
+                            // Check time slider before displaying
+                            const year = timeSlider ? parseInt(timeSlider.value) : 2025;
+                            const validFrom = node.data('valid_from');
+                            const validUntil = node.data('valid_until');
+                            if (validFrom && validUntil && (year < validFrom || year > validUntil)) {
+                                node.style('display', 'none');
+                            } else {
+                                node.style('display', 'element');
+                            }
+                        }
+                    });
+                });
 
                 // Update UI to Chat Mode
                 statusText.classList.add('hidden');

@@ -22,6 +22,12 @@
 - **Backend Architecture:** Node.js, Express.js (Clean Architecture & Robust Middleware)
 - **Design System:** Custom Dark Mode Glassmorphism with Tailwind Utility Classes
 
+## 🔥 V3 Upgrades
+- **Temporal Boundaries (valid_from / valid_until):** Filter knowledge graphs through time seamlessly.
+- **Cytoscape Time Slider UI:** Intuitive temporal controls embedded within the glassmorphic overlay.
+- **LLM Coordinate Anchors & Semantic Zoom:** Nodes are intelligently positioned and semantic zooming hides/shows detail based on proximity.
+- **Context Chunking Limits:** Strict LLM token management simulating real-world RAG optimization.
+
 ## 🏗 Architecture
 
 We adhere strictly to Clean Architecture principles on the backend. The API layer is decoupled from the business logic layer (`MockLLMAdapter`), ensuring modularity, testability, and rigid validation/error boundaries.
