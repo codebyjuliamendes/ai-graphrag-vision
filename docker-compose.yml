@@ -1,13 +1,26 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+    image: ai-graphrag-vision:local
+    init: true
     ports:
-      - "4001:4001"
+      - '${PORT:-4001}:4001'
     environment:
-      - NODE_ENV=production
-      - PORT=4001
+      PORT: 4001
+      LLM_PROVIDER: ${LLM_PROVIDER:-demo}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-opus-5-5}
+      API_TOKEN: ${API_TOKEN:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - graph-data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
+
+volumes:
+  graph-data:

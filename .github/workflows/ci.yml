@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, typecheck & tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=high
+
+  docker:
+    name: Docker build & smoke test
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t ai-graphrag-vision:ci .
+      - name: Run container
+        run: docker run -d --name app -p 4001:4001 ai-graphrag-vision:ci
+      - name: Wait for health check
+        run: |
+          for i in $(seq 1 30); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' app)
+            [ "$status" = "healthy" ] && break
+            sleep 2
+          done
+          docker inspect --format '{{.State.Health.Status}}' app | grep -q healthy
+      - name: Smoke test
+        run: |
+          set -e
+          curl -fsS http://localhost:4001/readyz
+          curl -fsS -X POST http://localhost:4001/api/process-document | grep -q '"success":true'
+          curl -fsS -X POST http://localhost:4001/api/query -H 'content-type: application/json' \
+            -d '{"query":"Who acquired OmniTech?"}' | grep -q 'citations'
+          test "$(docker exec app id -u)" != "0"
+      - name: Container logs
+        if: always()
+        run: docker logs app

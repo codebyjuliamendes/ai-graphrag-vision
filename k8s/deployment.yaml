@@ -5,7 +5,11 @@ metadata:
   labels:
     app: ai-graphrag-vision
 spec:
-  replicas: 2
+  # The graph is stored in a single JSON file on a ReadWriteOnce volume (single writer):
+  # keep exactly one replica and replace it with Recreate.
+  replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: ai-graphrag-vision
@@ -14,28 +18,72 @@ spec:
       labels:
         app: ai-graphrag-vision
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      terminationGracePeriodSeconds: 20
       containers:
-      - name: ai-graphrag-vision
-        image: ai-graphrag-vision:latest
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 4001
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 250m
-            memory: 256Mi
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 4001
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 4001
-          initialDelaySeconds: 15
-          periodSeconds: 20
+        - name: ai-graphrag-vision
+          # Replace with your registry/tag; avoid :latest in production.
+          image: ghcr.io/codebyjuliamendes/ai-graphrag-vision:2.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 4001
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: TRUST_PROXY
+              value: '1'
+            - name: LLM_PROVIDER
+              value: demo
+            # For Claude: set LLM_PROVIDER=anthropic and create the secret:
+            #   kubectl create secret generic ai-graphrag-vision --from-literal=ANTHROPIC_API_KEY=... --from-literal=API_TOKEN=...
+          envFrom:
+            - secretRef:
+                name: ai-graphrag-vision
+                optional: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ['ALL']
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: tmp
+              mountPath: /tmp
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 3
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ai-graphrag-vision-data
+        - name: tmp
+          emptyDir: {}
