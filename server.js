@@ -1,104 +1,73 @@
-/**
- * @fileoverview Express Server with Clean Architecture and strict error handling.
- */
-
-const express = require('express');
-const path = require('path');
-const helmet = require('helmet');
-const cors = require('cors');
-const compression = require('compression');
-const MockLLMAdapter = require('./MockLLMAdapter');
-
-const app = express();
-const port = process.env.PORT || 4001;
-const llmService = new MockLLMAdapter();
-
-app.use(helmet());
-app.use(cors());
-app.use(compression());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+'use strict';
 
 /**
- * Swagger UI Route
+ * Process entry point: config -> logger -> provider/store/service -> HTTP server,
+ * plus graceful shutdown on SIGTERM/SIGINT.
  */
-app.get('/api-docs', (req, res) => {
-    res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist/swagger-ui.css">
-      <title>API Documentation</title>
-    </head>
-    <body>
-      <div id="swagger-ui"></div>
-      <script src="https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js"></script>
-      <script>
-        window.onload = () => {
-          window.ui = SwaggerUIBundle({
-            url: '/swagger.json',
-            dom_id: '#swagger-ui',
-          });
-        };
-      </script>
-    </body>
-    </html>
-    `);
-});
 
-/**
- * Validates the presence and type of query in request body.
- */
-const validateQuery = (req, res, next) => {
-    const { query } = req.body;
-    if (!query || typeof query !== 'string' || query.trim() === '') {
-        return res.status(400).json({
-            success: false,
-            error: 'Bad Request: "query" must be a non-empty string.'
-        });
-    }
-    next();
-};
+const { loadConfig } = require('./src/config');
+const { createLogger } = require('./src/logger');
+const { createProvider } = require('./src/providers');
+const { createJsonFileStore } = require('./src/storage/graphStore');
+const { createGraphRagService } = require('./src/services/graphRagService');
+const { createApp } = require('./src/http/app');
 
-/**
- * Route: Process Document
- * Triggers graph extraction from document
- */
-app.post('/api/process-document', async (req, res, next) => {
-    try {
-        const graphData = await llmService.extractEntities();
-        res.json({ success: true, graph: graphData });
-    } catch (error) {
-        next(error);
-    }
-});
+async function main() {
+  const config = loadConfig();
+  const logger = createLogger(config);
+  const provider = createProvider(config);
+  const store = createJsonFileStore(config.dataFile);
+  const service = createGraphRagService({
+    store,
+    provider,
+    options: {
+      chunkSize: config.chunkSize,
+      topK: config.topK,
+      maxContextChars: config.maxContextChars,
+      extractionConcurrency: config.extractionConcurrency,
+    },
+  });
+  await service.init();
 
-/**
- * Route: Query Graph
- * Queries the knowledge graph using natural language
- */
-app.post('/api/query', validateQuery, async (req, res, next) => {
-    try {
-        const { query } = req.body;
-        const result = await llmService.processQuery(query);
-        res.json({ success: true, data: result });
-    } catch (error) {
-        next(error);
-    }
-});
+  if (provider.demo) {
+    logger.warn('LLM_PROVIDER=demo: running the offline rule-based demo provider (no language model is used).');
+  } else if (!process.env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+    logger.warn('LLM_PROVIDER=anthropic without ANTHROPIC_API_KEY: relying on other SDK credential sources.');
+  }
 
-/**
- * Global Error Handling Middleware
- */
-// eslint-disable-next-line no-unused-vars
-app.use((err, req, res, next) => {
-    console.error(`[Error] ${err.message}`, err.stack);
-    res.status(err.status || 500).json({
-        success: false,
-        error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message
+  const app = createApp({ config, service, logger });
+  const server = app.listen(config.port, config.host, () => {
+    logger.info(
+      { port: config.port, provider: provider.name, store: store.describe() },
+      `GraphRAG Vision listening on http://${config.host}:${config.port}`,
+    );
+  });
+  server.requestTimeout = config.llmTimeoutMs + 30_000;
+
+  let shuttingDown = false;
+  const shutdown = (/** @type {string} */ signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info({ signal }, 'Shutting down');
+    const timer = setTimeout(() => {
+      logger.error('Graceful shutdown timed out; forcing exit');
+      process.exit(1);
+    }, config.shutdownTimeoutMs);
+    timer.unref();
+    server.close((err) => {
+      if (err) logger.error({ err }, 'Error while closing the HTTP server');
+      process.exit(err ? 1 : 0);
     });
-});
+    server.closeIdleConnections();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('unhandledRejection', (reason) => {
+    logger.error({ err: reason }, 'Unhandled promise rejection');
+  });
+}
 
-app.listen(port, () => {
-    console.log(`[Server] Multimodal GraphRAG running at http://localhost:${port}`);
+main().catch((error) => {
+  console.error(JSON.stringify({ level: 'fatal', msg: 'Failed to start', error: String(error?.message ?? error) }));
+  process.exit(1);
 });
