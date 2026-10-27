@@ -3,15 +3,18 @@ kind: Ingress
 metadata:
   name: ai-graphrag-vision-ingress
   annotations:
-    kubernetes.io/ingress.class: nginx
+    # LLM-backed ingestion can take a while; keep the proxy from cutting it off.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '180'
+    nginx.ingress.kubernetes.io/proxy-body-size: '4m'
 spec:
+  ingressClassName: nginx
   rules:
-  - http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: ai-graphrag-vision-svc
-            port:
-              number: 80
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-graphrag-vision-svc
+                port:
+                  number: 80

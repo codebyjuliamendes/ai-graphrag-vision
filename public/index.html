@@ -1,154 +1,139 @@
-<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Futuristic GraphRAG UI</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        brand: {
-                            400: '#818cf8',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        /* Essential base overrides only, no vanilla CSS UI */
-        body { background-color: #0f172a; overflow: hidden; margin: 0; padding: 0; }
-        .cy-container { position: absolute; inset: 0; z-index: 0; }
-        
-        /* Glassmorphism utility classes mapped directly for Tailwind consistency */
-        .glass-panel {
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-        
-        /* Scrollbar styles for chat */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-    </style>
-</head>
-<body class="bg-slate-900 text-slate-200 h-screen w-screen overflow-hidden font-sans">
-    <div class="relative w-full h-full flex">
-        
-        <!-- Main Graph Area (Cytoscape behind sidebar) -->
-        <main class="flex-1 relative h-full w-full">
-            <div id="cy" class="cy-container"></div>
-            
-            <!-- Overlay Indicators -->
-            <div class="absolute top-4 right-4 glass-panel rounded-xl p-4 z-10 flex flex-col gap-2 shadow-2xl">
-                <h4 class="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-1">Graph Legend</h4>
-                <div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.8)]"></span> Company</div>
-                <div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(139,92,246,0.8)]"></span> Person</div>
-                <div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span> Metric</div>
-                <div class="flex items-center gap-2 text-sm"><span class="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span> Product</div>
-                
-                <hr class="border-slate-700/50 my-2">
-                
-                <h4 class="text-xs font-semibold uppercase text-slate-400 tracking-wider mb-1">Temporal Filter</h4>
-                <input type="range" id="time-slider" min="2020" max="2025" value="2025" class="w-full accent-brand-500 cursor-pointer">
-                <div class="text-sm text-center text-brand-400 font-semibold mt-1" id="time-display">Year: 2025</div>
-            </div>
-            
-            <div id="reasoning-overlay" class="absolute bottom-6 left-1/2 -translate-x-1/2 glass-panel rounded-full px-6 py-3 z-10 hidden flex-row items-center gap-3 transition-all duration-300">
-                <span class="relative flex h-3 w-3">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-3 w-3 bg-brand-500"></span>
-                </span>
-                <div>
-                    <h4 class="text-sm font-semibold text-white leading-tight">Multi-Hop Reasoning Active</h4>
-                    <p id="reasoning-text" class="text-xs text-slate-300">Traversing knowledge graph to synthesize answer...</p>
-                </div>
-            </div>
-        </main>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="description"
+      content="GraphRAG Vision: turn documents into a knowledge graph and ask questions answered with cited sources."
+    />
+    <title>GraphRAG Vision</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <link id="__________cytoscape_stylesheet" rel="stylesheet" href="cytoscape-shim.css" />
+    <script src="theme.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#doc-form">Skip to document form</a>
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="6" cy="7" r="3" />
+          <circle cx="18" cy="6" r="2.5" />
+          <circle cx="12" cy="18" r="3" />
+          <path d="M8.5 8.5 10.5 15.5M15.8 7.5 13.2 15.4M9 7l6.5-.8" />
+        </svg>
+        <h1>GraphRAG Vision</h1>
+      </div>
+      <div class="topbar-meta">
+        <span id="mode-badge" class="badge" role="status">Connecting…</span>
+        <span id="graph-stats" class="stats" aria-live="polite"></span>
+        <a class="link-button" href="/api-docs">API docs</a>
+        <button id="theme-toggle" class="icon-button" type="button" aria-label="Toggle dark mode" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" /></svg>
+        </button>
+      </div>
+    </header>
 
-        <!-- Sidebar -->
-        <aside class="w-80 h-full glass-panel flex flex-col z-10 border-r border-slate-700/50 relative shadow-2xl">
-            <!-- Header -->
-            <div class="p-6 border-b border-slate-700/50 flex items-center gap-3">
-                <div class="w-8 h-8 rounded bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-brand-400">
-                    <i data-lucide="hexagon" class="w-5 h-5"></i>
-                </div>
-                <h1 class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">GraphRAG Core</h1>
+    <div class="layout">
+      <aside class="panel">
+        <section class="card" aria-labelledby="docs-heading">
+          <h2 id="docs-heading">Documents</h2>
+          <form id="doc-form" novalidate>
+            <label for="doc-title">Title</label>
+            <input id="doc-title" name="title" type="text" maxlength="200" required autocomplete="off" />
+            <label for="doc-text">Text</label>
+            <textarea
+              id="doc-text"
+              name="text"
+              rows="5"
+              required
+              placeholder="Paste a report, article or notes…"
+              aria-describedby="doc-hint"
+            ></textarea>
+            <p id="doc-hint" class="hint">
+              Plain text or Markdown. Or load a file:
+              <label class="file-label"
+                ><input id="doc-file" type="file" accept=".txt,.md,text/plain,text/markdown" /> choose file</label
+              >
+            </p>
+            <p id="doc-error" class="field-error" role="alert" hidden></p>
+            <div class="row">
+              <button id="btn-index" class="button primary" type="submit">Index document</button>
+              <button id="btn-sample" class="button" type="button">Load sample report</button>
             </div>
-            
-            <!-- Upload Section -->
-            <div class="p-6 flex flex-col gap-4">
-                <h3 class="text-xs font-semibold uppercase text-slate-400 tracking-wider">Document Processing</h3>
-                <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-4 flex items-center gap-3 hover:border-brand-500/30 transition-colors">
-                    <div class="text-slate-400">
-                        <i data-lucide="file-text" class="w-6 h-6"></i>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-slate-200">Q3_Financial_Report.pdf</p>
-                        <p class="text-xs text-slate-400">2.4 MB • PDF</p>
-                    </div>
-                </div>
-                <button id="btn-process" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] flex items-center justify-center gap-2">
-                    <span class="btn-text">Process Document</span>
-                    <div class="loader hidden w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                </button>
-                <div id="extraction-status" class="hidden text-xs text-center text-brand-400 animate-pulse font-medium">
-                    Extracting Entities...
-                </div>
-                
-                <!-- Skeleton Loader -->
-                <div id="parsing-skeleton" class="hidden flex flex-col gap-3 mt-2">
-                    <div class="h-3 bg-slate-700/50 rounded animate-pulse w-3/4"></div>
-                    <div class="h-3 bg-slate-700/50 rounded animate-pulse w-1/2"></div>
-                    <div class="h-3 bg-slate-700/50 rounded animate-pulse w-full"></div>
-                </div>
-            </div>
+          </form>
+          <ul id="doc-list" class="doc-list" aria-label="Indexed documents"></ul>
+          <p id="doc-empty" class="empty">No documents indexed yet.</p>
+          <details id="token-box" class="token-box" hidden>
+            <summary>Access token</summary>
+            <label for="api-token">This server requires an API token to add or remove documents.</label>
+            <input id="api-token" type="password" autocomplete="off" />
+          </details>
+        </section>
 
-            <!-- Chat Section -->
-            <div class="hidden flex-1 flex-col overflow-hidden border-t border-slate-700/50" id="chat-section">
-                <div class="p-4 border-b border-slate-700/50 bg-slate-800/20">
-                    <h3 class="text-xs font-semibold uppercase text-slate-400 tracking-wider">Graph Query</h3>
-                </div>
-                
-                <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3" id="chat-history">
-                    <!-- Chat messages -->
-                </div>
-                
-                <div class="p-4 border-t border-slate-700/50 bg-slate-800/40">
-                    <div class="relative flex items-center">
-                        <input type="text" id="chat-input" disabled class="w-full bg-slate-900/50 border border-slate-700 text-sm rounded-lg pl-4 pr-10 py-2.5 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 placeholder-slate-500 transition-all disabled:opacity-50 text-white" placeholder="Ask about the document...">
-                        <button id="btn-send" disabled class="absolute right-2 p-1.5 rounded-md text-brand-400 hover:text-white hover:bg-brand-500 transition-colors disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-brand-400">
-                            <i data-lucide="send" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
+        <section class="card chat" aria-labelledby="chat-heading">
+          <h2 id="chat-heading">Ask the graph</h2>
+          <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-relevant="additions">
+            <p class="empty" id="chat-empty">Index a document, then ask a question about it.</p>
+          </div>
+          <form id="chat-form" class="chat-form">
+            <label for="chat-input" class="visually-hidden">Question</label>
+            <input
+              id="chat-input"
+              type="text"
+              maxlength="2000"
+              placeholder="e.g. Who acquired OmniTech?"
+              autocomplete="off"
+              required
+            />
+            <button id="btn-send" class="button primary" type="submit">Ask</button>
+          </form>
+        </section>
+      </aside>
+
+      <main class="graph-area" aria-labelledby="graph-heading">
+        <h2 id="graph-heading" class="visually-hidden">Knowledge graph</h2>
+        <div id="cy" class="cy" role="img" aria-label="Interactive knowledge graph of the indexed documents"></div>
+        <div id="graph-empty" class="graph-empty">
+          <p>The knowledge graph appears here once a document is indexed.</p>
+        </div>
+        <div id="graph-loading" class="graph-loading" hidden>
+          <span class="spinner" aria-hidden="true"></span><span id="graph-loading-text">Working…</span>
+        </div>
+
+        <details id="legend" class="overlay legend" open>
+          <summary>Legend &amp; filters</summary>
+          <ul class="legend-list">
+            <li><span class="dot t-company"></span>Company</li>
+            <li><span class="dot t-person"></span>Person</li>
+            <li><span class="dot t-product"></span>Product</li>
+            <li><span class="dot t-metric"></span>Metric</li>
+            <li><span class="dot t-location"></span>Location</li>
+            <li><span class="dot t-concept"></span>Concept</li>
+          </ul>
+          <div id="time-filter" class="time-filter" hidden>
+            <label class="check"><input id="time-enabled" type="checkbox" /> Filter relations by year</label>
+            <label for="time-slider" class="visually-hidden">Year</label>
+            <input id="time-slider" type="range" disabled />
+            <output id="time-display" for="time-slider"></output>
+          </div>
+        </details>
+
+        <aside id="node-details" class="overlay node-details" aria-live="polite" hidden>
+          <button id="node-close" class="icon-button small" type="button" aria-label="Close details">×</button>
+          <h3 id="node-name"></h3>
+          <p id="node-type" class="muted"></p>
+          <p id="node-desc"></p>
+          <ul id="node-links" class="node-links"></ul>
         </aside>
-
+      </main>
     </div>
-    
-    <!-- Toast Container -->
-    <div id="toast-container" class="fixed bottom-4 right-4 flex flex-col gap-2 z-[9999]"></div>
 
+    <div id="toasts" class="toasts" aria-live="assertive"></div>
+
+    <script src="/vendor/cytoscape/cytoscape.min.js"></script>
     <script src="app.js"></script>
-    <script>
-        lucide.createIcons();
-    </script>
-</body>
+  </body>
 </html>
