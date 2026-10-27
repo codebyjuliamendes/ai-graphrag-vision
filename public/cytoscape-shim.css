@@ -1,0 +1,9 @@
+/*
+ * Cytoscape.js injects an inline <style> element unless an element with this id exists.
+ * Inline styles are blocked by the Content-Security-Policy, so this (intentionally almost
+ * empty) stylesheet is linked with that id instead. The graph container is absolutely
+ * positioned in styles.css, which is what Cytoscape needs.
+ */
+.__________cytoscape_container {
+  position: absolute;
+}
